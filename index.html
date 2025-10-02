@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de Cuentas de Cobro</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; background-color: #f0f2f5; }
+        #container { text-align: center; }
+        #recordButton { font-size: 20px; padding: 20px 40px; border-radius: 50px; border: none; cursor: pointer; background-color: #4CAF50; color: white; }
+        #recordButton.recording { background-color: #f44336; }
+        #status { margin-top: 20px; font-size: 18px; color: #555; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Asistente de Cuentas de Cobro</h1>
+        <button id="recordButton">Mantén Presionado para Grabar 🎙️</button>
+        <p id="status">Esperando instrucción...</p>
+    </div>
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const statusElement = document.getElementById('status');
+        let mediaRecorder;
+        let audioChunks = [];
+
+        recordButton.addEventListener('mousedown', startRecording);
+        recordButton.addEventListener('mouseup', stopRecording);
+        recordButton.addEventListener('touchstart', startRecording);
+        recordButton.addEventListener('touchend', stopRecording);
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = sendAudioToServer;
+                
+                audioChunks = [];
+                mediaRecorder.start();
+                
+                recordButton.classList.add('recording');
+                recordButton.textContent = 'Grabando... Suelta para Enviar';
+                statusElement.textContent = 'Escuchando...';
+            } catch (err) {
+                statusElement.textContent = 'Error: No se pudo acceder al micrófono.';
+                console.error("Error accessing microphone:", err);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordButton.classList.remove('recording');
+                recordButton.textContent = 'Mantén Presionado para Grabar 🎙️';
+                statusElement.textContent = 'Procesando...';
+            }
+        }
+
+        async function sendAudioToServer() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob);
+
+            try {
+                const response = await fetch('/api/procesar-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                statusElement.textContent = `Éxito: ${result.message}`;
+            } catch (err) {
+                statusElement.textContent = 'Error al procesar el audio.';
+                console.error("Error sending audio to server:", err);
+            }
+        }
+    </script>
+</body>
+</html>
