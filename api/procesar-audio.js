@@ -1,28 +1,19 @@
-const { VertexAI } = require('@google-cloud/vertexai');
+const fetch = require('node-fetch'); // <-- ESTA LÍNEA CORRIGE EL ERROR
 const Busboy = require('busboy');
 
-// Función para parsear el audio que llega del frontend
+// Función para parsear el audio (esta no cambia)
 const parseMultipartForm = (req) => new Promise((resolve, reject) => {
     const busboy = Busboy({ headers: req.headers });
     const result = { files: [] };
-
     busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
         const chunks = [];
         file.on('data', (chunk) => chunks.push(chunk));
-        file.on('end', () => result.files.push({
-            fieldname,
-            buffer: Buffer.concat(chunks),
-            filename,
-            encoding,
-            mimetype,
-        }));
+        file.on('end', () => result.files.push({ buffer: Buffer.concat(chunks), mimetype }));
     });
-
     busboy.on('finish', () => resolve(result));
     busboy.on('error', reject);
     req.pipe(busboy);
 });
-
 
 // Función principal que se ejecuta
 module.exports = async (req, res) => {
@@ -37,46 +28,52 @@ module.exports = async (req, res) => {
         }
         
         const audioFile = files[0];
+        
+        // 1. PREPARAMOS LA LLAMADA DIRECTA A LA API DE GEMINI
+        const GOOGLE_API_KEY = process.env.GEMINI_API_KEY;
+        const GOOGLE_PROJECT_ID = process.env.GCLOUD_PROJECT;
+        const GOOGLE_LOCATION = process.env.GCLOUD_LOCATION;
 
-        // 1. INICIALIZAR GEMINI
-        const vertexAI = new VertexAI({
-            project: process.env.GCLOUD_PROJECT,
-            location: process.env.GCLOUD_LOCATION,
-        });
-        
-        const generativeModel = vertexAI.getGenerativeModel({
-            model: 'gemini-1.5-pro-preview-0409',
-        });
-        
-        // 2. PREPARAR LA PETICIÓN PARA GEMINI
-        const audioPart = {
-            inlineData: {
-                mimeType: audioFile.mimetype,
-                data: audioFile.buffer.toString('base64'),
-            },
-        };
-        
+        const url = `https://${GOOGLE_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/publishers/google/models/gemini-1.5-pro:streamGenerateContent`;
+
         const prompt = `
             Eres un asistente experto en facturación. Tu tarea es analizar la siguiente nota de voz.
             1. Transcribe el audio.
             2. Del texto, extrae: nombre de la empresa, NIT o cédula, valor total y el concepto.
             3. Devuelve únicamente un objeto JSON con las claves: "empresa", "nit_Cédula", "valor" (como número), "concepto", "correo_cliente", "numero_orden", "nombre_razón ", "fecha", "correo", "metodo_pago", "cuenta_bancaria", "firma".
-            4. Si algún dato falta, déjalo como null.
+            4. Si algún dato falta, déjalo como null. El JSON debe estar limpio, sin ```json ni ```.
         `;
 
-        // 3. LLAMAR A GEMINI
-        const result = await generativeModel.generateContent([prompt, audioPart]);
-        const jsonText = result.response.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+        const requestBody = {
+            contents: [{
+                role: "user",
+                parts: [{ text: prompt }, { inlineData: { mimeType: audioFile.mimetype, data: audioFile.buffer.toString('base64') } }]
+            }]
+        };
+
+        // 2. LLAMAMOS A GEMINI CON LA API KEY
+        const geminiResponse = await fetch(`${url}?key=${GOOGLE_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!geminiResponse.ok) {
+            throw new Error(`Google API error: ${await geminiResponse.text()}`);
+        }
+        
+        const geminiResult = await geminiResponse.json();
+        const jsonText = geminiResult[0].candidates[0].content.parts[0].text;
         const dataForN8n = JSON.parse(jsonText);
 
-        // 4. LLAMAR AL WEBHOOK DE N8N
+        // 3. LLAMAMOS AL WEBHOOK DE N8N
         await fetch(process.env.N8N_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataForN8n),
         });
 
-        // 5. RESPONDER AL FRONTEND
+        // 4. RESPONDEMOS AL FRONTEND
         res.status(200).json({ message: 'Cuenta de cobro iniciada.' });
 
     } catch (error) {

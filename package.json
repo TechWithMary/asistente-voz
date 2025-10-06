@@ -2,7 +2,7 @@
   "name": "asistente-voz",
   "version": "1.0.0",
   "dependencies": {
-    "@google-cloud/vertexai": "^1.1.0",
-    "busboy": "^1.6.0"
+    "busboy": "^1.6.0",
+    "node-fetch": "^2.6.7"
   }
 }
