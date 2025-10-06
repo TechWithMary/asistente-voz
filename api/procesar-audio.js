@@ -33,8 +33,8 @@ module.exports = async (req, res) => {
         const GOOGLE_PROJECT_ID = process.env.GCLOUD_PROJECT;
         const GOOGLE_LOCATION = process.env.GCLOUD_LOCATION;
 
-        const url = `https://${GOOGLE_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/publishers/google/models/gemini-pro-vision:streamGenerateContent`;
-        
+        const url = `https://${GOOGLE_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/publishers/google/models/gemini-1.0-pro:streamGenerateContent`;
+                
         const prompt = `
             Eres un asistente experto en facturación. Tu tarea es analizar la siguiente nota de voz.
             1. Transcribe el audio.
