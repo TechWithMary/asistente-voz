@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
         const requestBody = {
             contents: [{
                 role: "user",
-                parts: [{ text: prompt }, { inlineData: { mimeType: audioFile.mimetype, data: audioFile.buffer.toString('base64') } }]
+                parts: [{ text: prompt }, { inlineData: { mimeType: audioFile.mimetype || 'audio/webm', data: audioFile.buffer.toString('base64') } }]
             }]
         };
 
