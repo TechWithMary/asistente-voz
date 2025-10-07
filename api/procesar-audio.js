@@ -54,7 +54,10 @@ module.exports = async (req, res) => {
         }
         
         const geminiResult = await geminiResponse.json();
-        const jsonText = geminiResult.candidates[0].content.parts[0].text;
+        let jsonText = geminiResult.candidates[0].content.parts[0].text;
+        
+        // NUEVO: Limpia markdown de Gemini (quita ```json
+        jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         
         let dataForN8n;
         try {
