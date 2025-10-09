@@ -30,10 +30,24 @@ module.exports = async (req, res) => {
         
         const prompt = `
             Eres un asistente experto en facturación. Analiza la nota de voz:
-            1. Transcribe el audio.
-            2. Extrae exactamente: numero_orden (número), nombre_razon (nombre completo o razón social), nit_Cedula (string), direccion (string), telefono_Celular (string), correo (tuyo, email), empresa (a facturar, string), concepto (string), valor (número entero), metodo_pago (de: Transferencia bancaria, Nequi, Daviplata, Efectivo), cuenta_bancaria (string), fecha (YYYY-MM-DD, usa hoy si no se dice: 2025-10-07), firma (string), correo_cliente (email).
-            3. Devuelve SOLO un JSON limpio con esas claves exactas. Null si falta. Valor como número. No añadas texto extra.
-        `;
+            1. Transcribe el audio con precisión, respetando acentos y palabras (ej: "i" con tilde es "í", "ina" es "ina" no "ina", pronuncia claro "ahorros" o "corriente").
+            2. Extrae exactamente:
+            - numero_orden (número de orden).
+            - nombre_razon (nombre completo o razón social del emisor, quien hace la cuenta).
+            - nit_Cedula (NIT o cédula del emisor).
+            - direccion (dirección del emisor).
+            - telefono_Celular (teléfono del emisor, con +57 si es Colombia).
+            - correo (email del emisor, quien envía la cuenta – el tuyo).
+            - empresa (nombre de la empresa o cliente a facturar, el receptor).
+            - concepto (descripción del cobro).
+            - valor (número entero del total).
+            - metodo_pago (opciones: Transferencia bancaria, Nequi, Daviplata, Efectivo).
+            - cuenta_bancaria (número de cuenta para pago, incluyendo el banco y tipo como ahorros, corriente o vista si se menciona – ej: "Bancolombia ahorros 123456789").
+            - fecha (YYYY-MM-DD, usa hoy si no se dice: 2025-10-09).
+            - firma (nombre para firma del emisor).
+            - correo_cliente (email del receptor/cliente, a quien se envía la cuenta – diferente del correo del emisor).
+            3. Devuelve SOLO un JSON limpio con esas claves exactas. Null si falta. Valor como número. No añadas texto extra, ni ```json.
+            `;
 
         const requestBody = {
             contents: [{
