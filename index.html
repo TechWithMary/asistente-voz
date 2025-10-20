@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistente de Cuentas de Cobro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         body { 
-            font-family: 'Poppins', sans-serif; 
+            font-family: 'Inter', sans-serif; 
             text-align: center; 
             padding: 20px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: #333; 
+            background: linear-gradient(135deg, #e8ecf4 0%, #f0f4f8 100%); 
+            color: #2c3e50; 
             min-height: 100vh; 
             display: flex; 
             flex-direction: column; 
@@ -19,10 +19,10 @@
             align-items: center; 
         }
         h1 { 
-            color: white; 
+            color: #2c3e50; 
             font-size: 2.5em; 
             margin-bottom: 10px; 
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); 
+            font-weight: 600; 
             animation: fadeInDown 1s ease-out; 
         }
         p { 
@@ -30,11 +30,11 @@
             margin: 0 auto 30px; 
             line-height: 1.6; 
             font-size: 1.1em; 
-            color: rgba(255,255,255,0.9); 
+            color: #5a6c7d; 
             animation: fadeInUp 1s ease-out 0.5s both; 
         }
         button { 
-            background: linear-gradient(135deg, #4CAF50, #45a049); 
+            background: linear-gradient(135deg, #3498db, #2980b9); 
             color: white; 
             padding: 15px 40px; 
             font-size: 1.2em; 
@@ -42,17 +42,18 @@
             border-radius: 50px; 
             cursor: pointer; 
             transition: all 0.3s ease; 
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3); 
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); 
             position: relative; 
             overflow: hidden; 
             animation: pulse 2s infinite; 
+            font-weight: 500; 
         }
         button:hover { 
             transform: translateY(-2px); 
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4); 
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4); 
         }
         button:active, button.recording { 
-            background: linear-gradient(135deg, #45a049, #3d8b40); 
+            background: linear-gradient(135deg, #2980b9, #1f618d); 
             transform: translateY(0); 
             animation: none; 
         }
@@ -63,7 +64,7 @@
             left: 50%; 
             width: 20px; 
             height: 20px; 
-            background: red; 
+            background: #e74c3c; 
             border-radius: 50%; 
             transform: translate(-50%, -50%); 
             animation: pulse-red 1s infinite; 
@@ -71,20 +72,20 @@
         #status { 
             margin-top: 20px; 
             font-style: italic; 
-            color: rgba(255,255,255,0.8); 
+            color: #7f8c8d; 
             font-size: 1.1em; 
             animation: fadeIn 1s ease-out; 
         }
         #error { 
-            color: #f44336; 
+            color: #e74c3c; 
             margin-top: 10px; 
-            font-weight: bold; 
+            font-weight: 500; 
             animation: shake 0.5s ease-in-out; 
         }
         #progress { 
             width: 200px; 
             height: 5px; 
-            background: rgba(255,255,255,0.3); 
+            background: rgba(52, 152, 219, 0.3); 
             border-radius: 5px; 
             margin: 10px auto; 
             overflow: hidden; 
@@ -92,14 +93,14 @@
         }
         #progress-bar { 
             height: 100%; 
-            background: #4CAF50; 
+            background: #3498db; 
             width: 0%; 
             transition: width 0.3s ease; 
         }
         #waveform { 
             width: 200px; 
             height: 50px; 
-            background: rgba(255,255,255,0.2); 
+            background: rgba(52, 152, 219, 0.2); 
             border-radius: 25px; 
             margin: 10px auto; 
             display: none; 
@@ -108,19 +109,65 @@
             margin-top: 30px; 
         }
         .manual-link a { 
-            color: white; 
+            color: #2c3e50; 
             text-decoration: none; 
-            font-weight: 600; 
+            font-weight: 500; 
             font-size: 1.1em; 
-            border: 2px solid white; 
+            border: 2px solid #3498db; 
             padding: 10px 25px; 
             border-radius: 25px; 
             transition: all 0.3s ease; 
             animation: fadeIn 1s ease-out 1s both; 
+            background: white; 
         }
         .manual-link a:hover { 
+            background: #3498db; 
+            color: white; 
+        }
+        .example-btn { 
+            margin-top: 20px; 
+            background: #95a5a6; 
+            color: white; 
+            padding: 10px 20px; 
+            font-size: 1em; 
+            border: none; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        .example-btn:hover { 
+            background: #7f8c8d; 
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            animation: fadeIn 0.3s; 
+        }
+        .modal-content { 
             background: white; 
-            color: #667eea; 
+            margin: 10% auto; 
+            padding: 30px; 
+            border-radius: 10px; 
+            width: 80%; 
+            max-width: 600px; 
+            text-align: left; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); 
+        }
+        .close { 
+            color: #aaa; 
+            float: right; 
+            font-size: 28px; 
+            font-weight: bold; 
+            cursor: pointer; 
+        }
+        .close:hover { 
+            color: #000; 
         }
         @keyframes fadeInDown { 
             from { opacity: 0; transform: translateY(-20px); } 
@@ -134,14 +181,14 @@
             from { opacity: 0; } to { opacity: 1; } 
         }
         @keyframes pulse { 
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } 
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); } 
+            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); } 
         }
         @keyframes pulse-red { 
-            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 
-            70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } 
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } 
         }
         @keyframes shake { 
             0%, 100% { transform: translateX(0); } 
@@ -157,8 +204,9 @@
 </head>
 <body>
     <h1>Asistente de Cuentas de Cobro</h1>
-    <p>Graba una nota de voz con los detalles de la cuenta (ej: "Número de orden 001, nombre razón Mary Cardona, NIT 123456789, teléfono +57 300 1234567, correo mary@blockflux.co, empresa Serna SAS, concepto automatización, valor 2500000, método transferencia bancaria, cuenta Bancolombia ahorros 123456789, fecha hoy, firma Mary Cardona, correo cliente mari.99.mca@gmail.com").</p>
+    <p>Graba una nota de voz con los detalles de la cuenta (ej: "Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono +57 300 1234567, correo emisor@empresa.com, empresa Cliente ABC, concepto servicios, valor 2500000, método transferencia bancaria, cuenta Banco ahorros 123456789, fecha hoy, firma Autorizado, correo cliente cliente@ejemplo.com").</p>
     <button id="recordBtn">Mantén Presionado para Grabar 🎙️</button>
+    <button class="example-btn" onclick="openExample()">Ver Ejemplo de Script</button>
     <div id="progress">
         <div id="progress-bar"></div>
     </div>
@@ -166,7 +214,21 @@
     <div id="status">Esperando instrucción...</div>
     <div id="error"></div>
     <div class="manual-link">
-        <a href="https://blockflux.app.n8n.cloud/form/8b9ad2ef-0f52-4373-a8e5-81280a75b256" target="_blank">O usa el formulario manual</a>
+        <a href="TU-URL-MANUAL-DE-N8N" target="_blank">O usa el formulario manual</a>
+    </div>
+
+    <!-- Modal para Ejemplo -->
+    <div id="exampleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeExample()">&times;</span>
+            <h3>Ejemplo de Script de Audio (Genérico)</h3>
+            <p><strong>Di esto en el micrófono:</strong></p>
+            <p style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: left; font-family: monospace; white-space: pre-line;">
+Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 57 300 1234567, correo emisor@empresa punto com, empresa Cliente ABC, concepto servicios mensuales, valor dos millones quinientos mil, método transferencia bancaria, cuenta Banco ahorros 123456789, fecha hoy, firma Autorizado, correo cliente cliente@ejemplo punto com.
+            </p>
+            <p style="font-size: 0.9em; opacity: 0.8;">Habla claro y con pausas. Máximo 60 segundos.</p>
+            <button onclick="closeExample()" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cerrar</button>
+        </div>
     </div>
 
     <script>
@@ -176,13 +238,25 @@
         const progress = document.getElementById('progress');
         const progressBar = document.getElementById('progress-bar');
         const waveform = document.getElementById('waveform');
+        const modal = document.getElementById('exampleModal');
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
         let startTime;
-        const maxDuration = 60;  // 60 seg max
+        const maxDuration = 60;
         const BACKEND_URL = '/api/procesar-audio';
         let canvasCtx = waveform.getContext('2d');
+
+        // Modal Ejemplo
+        function openExample() {
+            modal.style.display = 'block';
+        }
+        function closeExample() {
+            modal.style.display = 'none';
+        }
+        window.onclick = (event) => {
+            if (event.target == modal) closeExample();
+        };
 
         recordBtn.addEventListener('mousedown', async () => {
             try {
@@ -199,7 +273,7 @@
 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) audioChunks.push(event.data);
-                    drawWaveform(event.data);  // Visualización simple
+                    drawWaveform(event.data);
                 };
 
                 mediaRecorder.onstop = async () => {
@@ -228,10 +302,9 @@
                     waveform.style.display = 'none';
                 };
 
-                mediaRecorder.start(100);  // Chunks cada 100ms para waveform
+                mediaRecorder.start(100);
                 isRecording = true;
 
-                // Progreso y límite de tiempo
                 const interval = setInterval(() => {
                     const elapsed = (Date.now() - startTime) / 1000;
                     const percent = (elapsed / maxDuration) * 100;
@@ -261,10 +334,9 @@
             }
         });
 
-        // Soporte touch para móviles
         recordBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if ('vibrate' in navigator) navigator.vibrate(200);  // Vibración
+            if ('vibrate' in navigator) navigator.vibrate(200);
             recordBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
         }, { passive: false });
 
@@ -274,7 +346,6 @@
             recordBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
         }, { passive: false });
 
-        // Waveform simple
         function drawWaveform(blob) {
             const reader = new FileReader();
             reader.onload = (e) {
@@ -285,7 +356,7 @@
                     const sliceWidth = waveform.width / data.length;
                     let x = 0;
                     canvasCtx.clearRect(0, 0, waveform.width, waveform.height);
-                    canvasCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                    canvasCtx.fillStyle = 'rgba(52,152,219,0.5)';
                     for (let i = 0; i < data.length; i++) {
                         const v = data[i] * 50;
                         canvasCtx.fillRect(x, (waveform.height / 2) - v, sliceWidth, v * 2);
@@ -296,7 +367,6 @@
             reader.readAsArrayBuffer(blob);
         }
 
-        // Animaciones
         document.addEventListener('DOMContentLoaded', () => {
             document.body.style.opacity = '0';
             document.body.style.transition = 'opacity 1s';
