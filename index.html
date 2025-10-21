@@ -245,7 +245,15 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
         let startTime;
         const maxDuration = 60;
         const BACKEND_URL = '/api/procesar-audio';
-        let canvasCtx = waveform.getContext('2d');
+        let canvasCtx;
+
+        // Espera DOM para inicializar canvas
+        document.addEventListener('DOMContentLoaded', () => {
+            canvasCtx = waveform.getContext('2d');
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 1s';
+            document.body.style.opacity = '1';
+        });
 
         // Modal Ejemplo
         function openExample() {
@@ -260,6 +268,9 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
 
         recordBtn.addEventListener('mousedown', async () => {
             try {
+                if (!canvasCtx) {
+                    canvasCtx = waveform.getContext('2d');
+                }
                 status.textContent = 'Grabando... (suelta para detener)';
                 errorDiv.textContent = '';
                 recordBtn.classList.add('recording');
@@ -273,7 +284,7 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) audioChunks.push(event.data);
-                    drawWaveform(event.data);
+                    if (canvasCtx) drawWaveform(event.data);  // Chequeo para null
                 };
 
                 mediaRecorder.onstop = async () => {
@@ -347,6 +358,7 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
         }, { passive: false });
 
         function drawWaveform(blob) {
+            if (!canvasCtx) return;  // Chequeo para null
             const reader = new FileReader();
             reader.onload = (e) {
                 const arrayBuffer = e.target.result;
@@ -362,16 +374,10 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
                         canvasCtx.fillRect(x, (waveform.height / 2) - v, sliceWidth, v * 2);
                         x += sliceWidth;
                     }
-                });
+                }, () => { console.log('Error decoding audio for waveform'); });
             };
             reader.readAsArrayBuffer(blob);
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.body.style.opacity = '0';
-            document.body.style.transition = 'opacity 1s';
-            document.body.style.opacity = '1';
-        });
     </script>
 </body>
 </html>
