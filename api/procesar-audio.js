@@ -14,6 +14,15 @@ const parseMultipartForm = (req) => new Promise((resolve, reject) => {
     req.pipe(busboy);
 });
 
+// FUNCIÓN PARA OBTENER FECHA DE HOY (Ej: 2025-10-22)
+const getTodayDate = () => {
+    const today = new Date();
+    // Ajustar a la zona horaria de Colombia (UTC-5)
+    // Vercel puede estar en UTC, así que restamos 5 horas
+    today.setHours(today.getHours() - 5);
+    return today.toISOString().split('T')[0];
+};
+
 module.exports = async (req, res) => {
     if (req.method !== 'POST') return res.status(405).send({ message: 'Only POST requests are allowed' });
 
@@ -22,7 +31,7 @@ module.exports = async (req, res) => {
         if (files.length === 0) return res.status(400).send({ message: 'No audio file uploaded.' });
         
         const audioFile = files[0];
-        console.log('Audio recibido:', { length: audioFile.buffer.length, mimeType: audioFile.mimetype });  // Log para debug
+        console.log('Audio recibido:', { length: audioFile.buffer.length, mimeType: audioFile.mimetype });
 
         if (audioFile.buffer.length === 0) {
             return res.status(400).send({ message: 'Audio vacío – graba de nuevo.' });
@@ -34,30 +43,32 @@ module.exports = async (req, res) => {
 
         const url = `https://${GOOGLE_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/publishers/google/models/gemini-2.0-flash:generateContent`;
         
+        // --- PROMPT MEJORADO ---
         const prompt = `
 Eres un asistente experto en facturación. Analiza la nota de voz:
-1. Transcribe el audio con precisión, respetando acentos y palabras (ej: "i" con tilde es "í", "ina" es "ina" no "ina", pronuncia claro "ahorros" o "corriente").
-2. Extrae exactamente:
+1. Transcribe el audio con precisión.
+2. Extrae exactamente los siguientes campos:
    - numero_orden (número de orden).
-   - nombre_razon (nombre completo o razón social del emisor, quien hace la cuenta).
-   - nit_Cedula (NIT o cédula del emisor).
-   - direccion (dirección del emisor).
-   - telefono_Celular (teléfono del emisor, con +57 si es Colombia).
-   - correo (email del emisor, quien envía la cuenta – el tuyo).
-   - empresa (nombre de la empresa o cliente a facturar, el receptor).
+   - nombre_razon (nombre completo o razón social del EMISOR, quien hace la cuenta).
+   - nit_Cedula (NIT o cédula del EMISOR).
+   - direccion (dirección del EMISOR).
+   - telefono_Celular (teléfono del EMISOR, con +57 si es Colombia).
+   - correo (Email del EMISOR. Ejemplo: 'emisor@miempresa.com').
+   - empresa (nombre de la empresa o CLIENTE a facturar, el RECEPTOR).
    - concepto (descripción del cobro).
-   - valor (número entero del total).
+   - valor (número entero del total, sin puntos ni comas).
    - metodo_pago (opciones: Transferencia bancaria, Nequi, Daviplata, Efectivo).
-   - cuenta_bancaria (número de cuenta para pago, incluyendo el banco y tipo como ahorros, corriente o vista si se menciona – ej: "Bancolombia ahorros 123456789").
-   - fecha (YYYY-MM-DD, usa hoy si no se dice: 2025-10-09).
-   - firma (nombre para firma del emisor).
-   - correo_cliente (email del receptor/cliente, a quien se envía la cuenta – diferente del correo del emisor).
-3. Devuelve SOLO un JSON limpio con esas claves exactas. Null si falta. Valor como número. No añadas texto extra, ni \`\`\`json.
+   - cuenta_bancaria (número de cuenta para pago, incluyendo banco y tipo. Ej: "Bancolombia ahorros 123456789").
+   - fecha (Fecha en formato YYYY-MM-DD. Si el audio dice "hoy", usa la fecha actual).
+   - firma (nombre para firma del EMISOR).
+   - correo_cliente (Email del CLIENTE/RECEPTOR. Ejemplo: 'cliente@otraempresa.com').
+   
+3. Devuelve SÓLO un JSON limpio con esas claves exactas. Si un campo falta, usa 'null'. El campo 'valor' debe ser un número. No añadas texto extra, ni \`\`\`json.
 `;
 
         const mimeType = audioFile.mimetype || 'audio/webm';
         const base64Data = audioFile.buffer.toString('base64');
-        console.log('Enviando a Gemini:', { mimeType, base64Length: base64Data.length });  // Log para debug
+        console.log('Enviando a Gemini:', { mimeType, base64Length: base64Data.length });
 
         const requestBody = {
             contents: [{
@@ -74,35 +85,41 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
 
         if (!geminiResponse.ok) {
             const errorText = await geminiResponse.text();
-            console.error('Gemini response error:', errorText);  // Log error completo
+            console.error('Gemini response error:', errorText);
             throw new Error(`Google API error: ${errorText}`);
         }
         
         const geminiResult = await geminiResponse.json();
         let jsonText = geminiResult.candidates[0].content.parts[0].text;
         
-        // Limpia markdown de Gemini
         jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        console.log('JSON extraído de Gemini:', jsonText);  // Log para debug
+        console.log('JSON extraído de Gemini:', jsonText);
         
         let dataForN8n;
         try {
             dataForN8n = JSON.parse(jsonText);
-            // Fallback para espacio en nombre_razon si Gemini lo genera mal
+            
+            // --- CORRECCIÓN DE FECHA ---
+            // Si Gemini no pudo extraer la fecha (o puso "hoy"), usa la fecha actual.
+            if (!dataForN8n.fecha || dataForN8n.fecha.toLowerCase() === 'hoy') {
+                dataForN8n.fecha = getTodayDate();
+            }
+
+            // Asegura que nit_Cedula sea string
+            if (dataForN8n.nit_Cedula) dataForN8n.nit_Cedula = String(dataForN8n.nit_Cedula);
+            
+            // (Tu fallback para 'nombre_razón ' es bueno, pero lo ideal es unificar los nombres, ver recomendación abajo)
             if (dataForN8n['nombre_razón ']) {
                 dataForN8n.nombre_razon = dataForN8n['nombre_razón '];
                 delete dataForN8n['nombre_razón '];
             }
-            // Default fecha hoy
-            if (!dataForN8n.fecha) dataForN8n.fecha = '2025-10-09';
-            // Asegura que nit_Cedula sea string
-            if (dataForN8n.nit_Cedula) dataForN8n.nit_Cedula = String(dataForN8n.nit_Cedula);
+
         } catch (parseError) {
-            console.error('Parse JSON error:', parseError.message, 'Texto:', jsonText);  // Log error
+            console.error('Parse JSON error:', parseError.message, 'Texto:', jsonText);
             throw new Error(`Error parse JSON: ${parseError.message}. Texto: ${jsonText}`);
         }
 
-        console.log('Datos para n8n:', dataForN8n);  // Log final
+        console.log('Datos para n8n:', dataForN8n);
 
         // Envía a n8n webhook
         const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
@@ -115,7 +132,7 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
             const errorText = await n8nResponse.text();
             console.error('Error n8n:', errorText);
         } else {
-            console.log('n8n response OK:', await n8nResponse.text());  // Log éxito
+            console.log('n8n response OK:', await n8nResponse.text());
         }
 
         res.status(200).json({ message: 'Cuenta de cobro iniciada.' });
