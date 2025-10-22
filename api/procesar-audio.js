@@ -7,7 +7,7 @@ const parseMultipartForm = (req) => new Promise((resolve, reject) => {
     busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
         const chunks = [];
         file.on('data', (chunk) => chunks.push(chunk));
-        file.on('end', () => result.files.push({ buffer: Buffer.concat(chunks), mimetype }));
+        file.on('end', () => result.files.push({ buffer: Buffer.concat(chunks), mimetype: mimetype || 'audio/webm' }));
     });
     busboy.on('finish', () => resolve(result));
     busboy.on('error', reject);
@@ -22,6 +22,12 @@ module.exports = async (req, res) => {
         if (files.length === 0) return res.status(400).send({ message: 'No audio file uploaded.' });
         
         const audioFile = files[0];
+        console.log('Audio recibido:', { length: audioFile.buffer.length, mimeType: audioFile.mimetype });  // Log para debug
+
+        if (audioFile.buffer.length === 0) {
+            return res.status(400).send({ message: 'Audio vacío – graba de nuevo.' });
+        }
+
         const GOOGLE_API_KEY = process.env.GEMINI_API_KEY;
         const GOOGLE_PROJECT_ID = process.env.GCLOUD_PROJECT;
         const GOOGLE_LOCATION = process.env.GCLOUD_LOCATION;
@@ -49,10 +55,14 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
 3. Devuelve SOLO un JSON limpio con esas claves exactas. Null si falta. Valor como número. No añadas texto extra, ni \`\`\`json.
 `;
 
+        const mimeType = audioFile.mimetype || 'audio/webm';
+        const base64Data = audioFile.buffer.toString('base64');
+        console.log('Enviando a Gemini:', { mimeType, base64Length: base64Data.length });  // Log para debug
+
         const requestBody = {
             contents: [{
                 role: "user",
-                parts: [{ text: prompt }, { inlineData: { mimeType: audioFile.mimetype || 'audio/webm', data: audioFile.buffer.toString('base64') } }]
+                parts: [{ text: prompt }, { inlineData: { mimeType, data: base64Data } }]
             }]
         };
 
@@ -64,14 +74,16 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
 
         if (!geminiResponse.ok) {
             const errorText = await geminiResponse.text();
+            console.error('Gemini response error:', errorText);  // Log error completo
             throw new Error(`Google API error: ${errorText}`);
         }
         
         const geminiResult = await geminiResponse.json();
         let jsonText = geminiResult.candidates[0].content.parts[0].text;
         
-        // NUEVO: Limpia markdown de Gemini (quita ```json
+        // Limpia markdown de Gemini
         jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        console.log('JSON extraído de Gemini:', jsonText);  // Log para debug
         
         let dataForN8n;
         try {
@@ -82,12 +94,15 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
                 delete dataForN8n['nombre_razón '];
             }
             // Default fecha hoy
-            if (!dataForN8n.fecha) dataForN8n.fecha = '2025-10-07';
+            if (!dataForN8n.fecha) dataForN8n.fecha = '2025-10-09';
             // Asegura que nit_Cedula sea string
             if (dataForN8n.nit_Cedula) dataForN8n.nit_Cedula = String(dataForN8n.nit_Cedula);
         } catch (parseError) {
+            console.error('Parse JSON error:', parseError.message, 'Texto:', jsonText);  // Log error
             throw new Error(`Error parse JSON: ${parseError.message}. Texto: ${jsonText}`);
         }
+
+        console.log('Datos para n8n:', dataForN8n);  // Log final
 
         // Envía a n8n webhook
         const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
@@ -96,7 +111,12 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
             body: JSON.stringify(dataForN8n),
         });
 
-        if (!n8nResponse.ok) console.error('Error n8n:', await n8nResponse.text());
+        if (!n8nResponse.ok) {
+            const errorText = await n8nResponse.text();
+            console.error('Error n8n:', errorText);
+        } else {
+            console.log('n8n response OK:', await n8nResponse.text());  // Log éxito
+        }
 
         res.status(200).json({ message: 'Cuenta de cobro iniciada.' });
 
