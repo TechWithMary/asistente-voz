@@ -82,29 +82,8 @@
             font-weight: 500; 
             animation: shake 0.5s ease-in-out; 
         }
-        #progress { 
-            width: 200px; 
-            height: 5px; 
-            background: rgba(52, 152, 219, 0.3); 
-            border-radius: 5px; 
-            margin: 10px auto; 
-            overflow: hidden; 
-            display: none; 
-        }
-        #progress-bar { 
-            height: 100%; 
-            background: #3498db; 
-            width: 0%; 
-            transition: width 0.3s ease; 
-        }
-        #waveform { 
-            width: 200px; 
-            height: 50px; 
-            background: rgba(52, 152, 219, 0.2); 
-            border-radius: 25px; 
-            margin: 10px auto; 
-            display: none; 
-        }
+        /* --- ESTILOS ELIMINADOS --- */
+        /* Ya no necesitamos #progress, #progress-bar, #waveform */
         .manual-link { 
             margin-top: 30px; 
         }
@@ -207,17 +186,13 @@
     <p>Graba una nota de voz con los detalles de la cuenta (ej: "Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono +57 300 1234567, correo emisor@empresa.com, empresa Cliente ABC, concepto servicios, valor 2500000, método transferencia bancaria, cuenta Banco ahorros 123456789, fecha hoy, firma Autorizado, correo cliente cliente@ejemplo.com").</p>
     <button id="recordBtn">Mantén Presionado para Grabar 🎙️</button>
     <button class="example-btn" onclick="openExample()">Ver Ejemplo de Script</button>
-    <div id="progress">
-        <div id="progress-bar"></div>
-    </div>
-    <canvas id="waveform"></canvas>
+    
     <div id="status">Esperando instrucción...</div>
     <div id="error"></div>
     <div class="manual-link">
         <a href="https://blockflux.app.n8n.cloud/form/8b9ad2ef-0f52-4373-a8e5-81280a75b256" target="_blank">O usa el formulario manual</a>
     </div>
 
-    <!-- Modal para Ejemplo -->
     <div id="exampleModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeExample()">&times;</span>
@@ -226,7 +201,7 @@
             <p style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: left; font-family: monospace; white-space: pre-line;">
 Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 57 300 1234567, correo emisor@empresa punto com, empresa Cliente ABC, concepto servicios mensuales, valor dos millones quinientos mil, método transferencia bancaria, cuenta Banco ahorros 123456789, fecha hoy, firma Autorizado, correo cliente cliente@ejemplo punto com.
             </p>
-            <p style="font-size: 0.9em; opacity: 0.8;">Habla claro y con pausas. Máximo 60 segundos.</p>
+            <p style="font-size: 0.9em; opacity: 0.8;">Habla claro y con pausas. Tómate el tiempo que necesites.</p>
             <button onclick="closeExample()" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Cerrar</button>
         </div>
     </div>
@@ -236,17 +211,12 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
         const recordBtn = document.getElementById('recordBtn');
         const status = document.getElementById('status');
         const errorDiv = document.getElementById('error');
-        const progress = document.getElementById('progress');
-        const progressBar = document.getElementById('progress-bar');
-        const waveform = document.getElementById('waveform');
         const modal = document.getElementById('exampleModal');
+        
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
-        let startTime;
-        const maxDuration = 60;
         const BACKEND_URL = '/api/procesar-audio';
-        let canvasCtx = waveform ? waveform.getContext('2d') : null;
 
         // Modal Ejemplo
         function openExample() {
@@ -261,54 +231,24 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
 
         recordBtn.addEventListener('mousedown', async () => {
             try {
-                console.log('Boton presionado - iniciando grabacion');  // Log para debug
+                console.log('Boton presionado - iniciando grabacion');
                 status.textContent = 'Grabando... (suelta para detener)';
                 errorDiv.textContent = '';
                 recordBtn.classList.add('recording');
                 recordBtn.textContent = 'Grabando...';
-                progress.style.display = 'block';
-                if (waveform) waveform.style.display = 'block';
-                startTime = Date.now();
 
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log('Stream obtenido - iniciando MediaRecorder');  // Log
+                console.log('Stream obtenido - iniciando MediaRecorder');
                 mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) audioChunks.push(event.data);
-                    // No draw per chunk – solo al final para evitar EncodingError
                 };
 
                 mediaRecorder.onstop = async () => {
-                    console.log('Grabacion detenida - enviando a backend');  // Log
+                    console.log('Grabacion detenida - enviando a backend');
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     audioChunks = [];
-
-                    // Draw waveform solo al final (audio completo)
-                    if (canvasCtx && audioBlob.size > 0) {
-                        try {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                                const arrayBuffer = e.target.result;
-                                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                                audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-                                    const data = buffer.getChannelData(0);
-                                    const sliceWidth = waveform.width / data.length;
-                                    let x = 0;
-                                    canvasCtx.clearRect(0, 0, waveform.width, waveform.height);
-                                    canvasCtx.fillStyle = 'rgba(52,152,219,0.5)';
-                                    for (let i = 0; i < data.length; i++) {
-                                        const v = data[i] * 50;
-                                        canvasCtx.fillRect(x, (waveform.height / 2) - v, sliceWidth, v * 2);
-                                        x += sliceWidth;
-                                    }
-                                });
-                            };
-                            reader.readAsArrayBuffer(audioBlob);
-                        } catch (err) {
-                            console.log('Error drawing final waveform:', err);  // Non-fatal
-                        }
-                    }
 
                     const formData = new FormData();
                     formData.append('audio', audioBlob, 'nota-de-voz.webm');
@@ -328,37 +268,25 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
                     stream.getTracks().forEach(track => track.stop());
                     recordBtn.classList.remove('recording');
                     recordBtn.textContent = 'Mantén Presionado para Grabar 🎙️';
-                    progress.style.display = 'none';
-                    if (waveform) waveform.style.display = 'none';
                 };
 
-                mediaRecorder.start(100);
+                mediaRecorder.start();
                 isRecording = true;
-                console.log('MediaRecorder iniciado');  // Log
+                console.log('MediaRecorder iniciado');
 
-                const interval = setInterval(() => {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    const percent = (elapsed / maxDuration) * 100;
-                    progressBar.style.width = percent + '%';
-                    if (elapsed >= maxDuration) {
-                        mediaRecorder.stop();
-                        clearInterval(interval);
-                        isRecording = false;
-                    }
-                }, 100);
+                // --- LÓGICA DEL TEMPORIZADOR ELIMINADA ---
+                // Ya no hay intervalo que detenga la grabación.
 
             } catch (err) {
-                console.error('Error en mousedown:', err);  // Log detallado
+                console.error('Error en mousedown:', err);
                 errorDiv.textContent = 'Error: ' + err.message + ' (verifica micrófono)';
                 recordBtn.classList.remove('recording');
                 recordBtn.textContent = 'Mantén Presionado para Grabar 🎙️';
-                progress.style.display = 'none';
-                if (waveform) waveform.style.display = 'none';
             }
         });
 
         recordBtn.addEventListener('mouseup', () => {
-            console.log('Boton soltado - deteniendo');  // Log
+            console.log('Boton soltado - deteniendo');
             if (isRecording && mediaRecorder) {
                 mediaRecorder.stop();
                 isRecording = false;
