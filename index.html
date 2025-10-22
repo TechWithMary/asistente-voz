@@ -358,7 +358,7 @@ Número de orden 001, nombre razón Empresa XYZ, NIT 123456789, teléfono más 5
         }, { passive: false });
 
         function drawWaveform(blob) {
-            if (!canvasCtx) return;  // Chequeo para null
+            if (!canvasCtx) return;  
             const reader = new FileReader();
             reader.onload = (e) {
                 const arrayBuffer = e.target.result;
