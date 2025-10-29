@@ -14,11 +14,8 @@ const parseMultipartForm = (req) => new Promise((resolve, reject) => {
     req.pipe(busboy);
 });
 
-// FUNCIÓN PARA OBTENER FECHA DE HOY (Ej: 2025-10-22)
 const getTodayDate = () => {
     const today = new Date();
-    // Ajustar a la zona horaria de Colombia (UTC-5)
-    // Vercel puede estar en UTC, así que restamos 5 horas
     today.setHours(today.getHours() - 5);
     return today.toISOString().split('T')[0];
 };
@@ -43,7 +40,6 @@ module.exports = async (req, res) => {
 
         const url = `https://${GOOGLE_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/publishers/google/models/gemini-2.0-flash:generateContent`;
         
-        // --- PROMPT MEJORADO ---
         const prompt = `
 Eres un asistente experto en facturación. Analiza la nota de voz:
 1. Transcribe el audio con precisión.
@@ -99,16 +95,12 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
         try {
             dataForN8n = JSON.parse(jsonText);
             
-            // --- CORRECCIÓN DE FECHA ---
-            // Si Gemini no pudo extraer la fecha (o puso "hoy"), usa la fecha actual.
             if (!dataForN8n.fecha || dataForN8n.fecha.toLowerCase() === 'hoy') {
                 dataForN8n.fecha = getTodayDate();
             }
 
-            // Asegura que nit_Cedula sea string
             if (dataForN8n.nit_Cedula) dataForN8n.nit_Cedula = String(dataForN8n.nit_Cedula);
             
-            // (Tu fallback para 'nombre_razón ' es bueno, pero lo ideal es unificar los nombres, ver recomendación abajo)
             if (dataForN8n['nombre_razón ']) {
                 dataForN8n.nombre_razon = dataForN8n['nombre_razón '];
                 delete dataForN8n['nombre_razón '];
@@ -121,21 +113,22 @@ Eres un asistente experto en facturación. Analiza la nota de voz:
 
         console.log('Datos para n8n:', dataForN8n);
 
-        // Envía a n8n webhook
-        const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
+        // ✅ SOLUCIÓN: Envía a n8n SIN esperar respuesta (fire and forget)
+        // Esto permite que Vercel responda rápido al usuario y n8n procese en background
+        fetch(process.env.N8N_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataForN8n),
+            timeout: 5000 // Timeout corto, no bloqueamos
+        }).catch(err => {
+            console.error('Error enviando a n8n (background):', err.message);
+            // No lanzamos error, solo registramos
         });
 
-        if (!n8nResponse.ok) {
-            const errorText = await n8nResponse.text();
-            console.error('Error n8n:', errorText);
-        } else {
-            console.log('n8n response OK:', await n8nResponse.text());
-        }
-
-        res.status(200).json({ message: 'Cuenta de cobro iniciada.' });
+        // ✅ Responde inmediatamente al usuario
+        res.status(200).json({ 
+            message: 'Cuenta de cobro en proceso. Recibirás un email en unos momentos.' 
+        });
 
     } catch (error) {
         console.error('Error:', error);
