@@ -224,32 +224,26 @@
       message.style.display = 'none';
       
       try {
+        // ✅ ENVIAMOS SIN ESPERAR RESPUESTA (fire and forget)
         fetch('https://blockflux.app.n8n.cloud/webhook/crear-cuenta-cobro', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-}).catch(err => console.log('Enviado a n8n'));
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        }).catch(err => console.log('Error en background:', err));
 
-// Responde inmediatamente
-message.className = 'message success';
-message.textContent = `✅ Cuenta de cobro enviada. Recibirás un email en breve.`;
+        // ✅ RESPONDEMOS INMEDIATAMENTE AL USUARIO
+        message.className = 'message success';
+        message.textContent = '✅ Cuenta de cobro enviada. Recibirás un email en breve.';
+        message.style.display = 'block';
+        form.reset();
+        document.querySelector('input[name="fecha"]').valueAsDate = new Date();
         
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-          message.className = 'message success';
-          message.textContent = `✅ ${result.message}`;
-          message.style.display = 'block';
-          form.reset();
-          document.querySelector('input[name="fecha"]').valueAsDate = new Date();
-          
-          // Opcional: redirigir después de 3 segundos
-          setTimeout(() => {
-            window.location.href = '/exito.html';
-          }, 2000);
-        } else {
-          throw new Error(result.message || 'Error al procesar la solicitud');
-        }
+        // Redirigir después de 2 segundos
+        setTimeout(() => {
+          window.location.href = '/exito.html';
+        }, 2000);
         
       } catch (error) {
         message.className = 'message error';
