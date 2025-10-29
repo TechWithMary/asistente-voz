@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generar Cuenta de Cobro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .description {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    label .required {
+      color: #e74c3c;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      color: #667eea;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Generar cuenta de cobro</h1>
+    <p class="description">Por favor diligencie todos los datos para generar automáticamente su cuenta de cobro.</p>
+    
+    <form id="cuentaCobroForm">
+      <div class="form-group">
+        <label>Número de orden <span class="required">*</span></label>
+        <input type="number" name="numero_orden" required placeholder="001">
+      </div>
+
+      <div class="form-group">
+        <label>Nombre / Razón Social <span class="required">*</span></label>
+        <input type="text" name="nombre_razon" required placeholder="Nombre Completo o Nombre de la Empresa">
+      </div>
+
+      <div class="form-group">
+        <label>NIT / Cédula <span class="required">*</span></label>
+        <input type="text" name="nit_Cedula" required placeholder="123456789-0">
+      </div>
+
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" name="direccion" placeholder="Dirección">
+      </div>
+
+      <div class="form-group">
+        <label>Teléfono / Celular <span class="required">*</span></label>
+        <input type="tel" name="telefono_Celular" required placeholder="+57 300 123 4567">
+      </div>
+
+      <div class="form-group">
+        <label>Correo electrónico <span class="required">*</span></label>
+        <input type="email" name="correo" required placeholder="ejemplo@correo.com">
+      </div>
+
+      <div class="form-group">
+        <label>Empresa / Cliente a facturar <span class="required">*</span></label>
+        <input type="text" name="empresa" required placeholder="Empresa/Cliente a facturar">
+      </div>
+
+      <div class="form-group">
+        <label>Concepto <span class="required">*</span></label>
+        <textarea name="concepto" required placeholder="Servicios prestados"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Valor <span class="required">*</span></label>
+        <input type="number" name="valor" required placeholder="2500000">
+      </div>
+
+      <div class="form-group">
+        <label>Método de pago <span class="required">*</span></label>
+        <select name="metodo_pago" required>
+          <option value="">Seleccione...</option>
+          <option value="Transferencia bancaria">Transferencia bancaria</option>
+          <option value="Nequi">Nequi</option>
+          <option value="Daviplata">Daviplata</option>
+          <option value="Efectivo">Efectivo</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cuenta bancaria <span class="required">*</span></label>
+        <input type="text" name="cuenta_bancaria" required placeholder="Ej: Bancolombia - Ahorros 12345678901">
+      </div>
+
+      <div class="form-group">
+        <label>Fecha <span class="required">*</span></label>
+        <input type="date" name="fecha" required>
+      </div>
+
+      <div class="form-group">
+        <label>Firma <span class="required">*</span></label>
+        <input type="text" name="firma" required placeholder="Firma del autorizado">
+      </div>
+
+      <div class="form-group">
+        <label>Correo del cliente <span class="required">*</span></label>
+        <input type="email" name="correo_cliente" required placeholder="cliente@empresa.com">
+      </div>
+
+      <button type="submit">Generar Cuenta de Cobro</button>
+    </form>
+
+    <div class="loading">
+      <p>⏳ Generando cuenta de cobro...</p>
+    </div>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    // Establecer fecha actual por defecto
+    document.querySelector('input[name="fecha"]').valueAsDate = new Date();
+
+    document.getElementById('cuentaCobroForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const loading = document.querySelector('.loading');
+      const message = document.getElementById('message');
+      
+      // Obtener datos del formulario
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      
+      // Convertir valor a número
+      data.valor = parseFloat(data.valor);
+      
+      // Deshabilitar botón y mostrar loading
+      submitBtn.disabled = true;
+      loading.style.display = 'block';
+      message.style.display = 'none';
+      
+      try {
+        // URL de tu webhook de n8n
+        const response = await fetch('https://blockflux.app.n8n.cloud/webhook/crear-cuenta-cobro', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          message.className = 'message success';
+          message.textContent = `✅ ${result.message}`;
+          message.style.display = 'block';
+          form.reset();
+          document.querySelector('input[name="fecha"]').valueAsDate = new Date();
+          
+          // Opcional: redirigir después de 3 segundos
+          setTimeout(() => {
+            window.location.href = 'https://asistente-voz-seven.vercel.app/exito.html';
+          }, 3000);
+        } else {
+          throw new Error(result.message || 'Error al procesar la solicitud');
+        }
+        
+      } catch (error) {
+        message.className = 'message error';
+        message.textContent = `❌ Error: ${error.message}`;
+        message.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
