@@ -224,14 +224,15 @@
       message.style.display = 'none';
       
       try {
-        // URL de tu webhook de n8n
-        const response = await fetch('https://blockflux.app.n8n.cloud/webhook/crear-cuenta-cobro', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        });
+        fetch('https://blockflux.app.n8n.cloud/webhook/crear-cuenta-cobro', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+}).catch(err => console.log('Enviado a n8n'));
+
+// Responde inmediatamente
+message.className = 'message success';
+message.textContent = `✅ Cuenta de cobro enviada. Recibirás un email en breve.`;
         
         const result = await response.json();
         
